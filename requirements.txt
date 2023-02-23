@@ -1,0 +1,12 @@
+faiss_cpu==1.7.3
+gradio==3.19.1
+numpy==1.23.5
+Pillow==9.4.0
+pytest==7.2.1
+requests==2.28.2
+scikit_learn==1.2.1
+tensorflow==2.11.0
+black==23.1.0
+pathos==0.3.0
+gdown=4.6.4
+jupyter
