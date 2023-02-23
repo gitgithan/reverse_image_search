@@ -13,7 +13,7 @@ pip install -r requirements.txt
    - `./data_download all` to download both caltech (1 minute) and voc2012 (6 minutes :warning:) (`all` can be substituted with `caltech` or `voc`)
 3. **Create Indexes** (optional since already created)
    - `python gradio/create_index.py --data caltech` (`caltech` can be substituted with `voc`)
-4. **Run gradio** (ensure `features` and `data` folder exist at same level as gradio folder)
+4. **Run gradio** (ensure `features` and `datasets` folder exist at same level as gradio folder)
    - `python gradio/block.py`
 
 # Folder Structure :file_folder:
@@ -69,7 +69,7 @@ pip install -r requirements.txt
    - run with `python custom_ivfpq.py`, 40 seconds to fit, 20 seconds to predict all ~9000 caltech101 images
 3. `gradio`
    - `block.py` - blocks (low level) gradio api, allows complete control of data flow
-   - `interface.py` - interface (high level) gradio api, allows quick prototyping but limited control
+   - `interface.py` - interface (high level) gradio api, limited control of data flow
    - `create_index.py` - script to create indexes to store in same gradio folder, to be loaded by gradio for search
 4. `notebooks`
 
