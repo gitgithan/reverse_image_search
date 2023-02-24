@@ -19,6 +19,7 @@ def create_index(data):
 
     faiss.write_index(index_ivfpq, f"gradio/index_ivfpq_{data}.index")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(

@@ -7,4 +7,4 @@ pytest:
 	PYTHONDONTWRITEBYTECODE=1 pytest -vv --color=yes
 
 black:
-	find . -iname "*.py" ! -path "./venv/*" ! -path "./test*" | xargs -n1 -I {}  black {}
+	find . -iname "*.py" ! -path "./.venv/*" ! -path "./test*" | xargs -n1 -I {}  black {}

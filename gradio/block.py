@@ -14,15 +14,17 @@ global INDEX
 
 with open("features/filenames-caltech101.pickle", "rb") as f:
     caltech_filenames = pickle.load(f)
-    caltech_filenames = np.array([filename[1:] for filename in caltech_filenames]) #remove leading / because filenames are created in colab in features folder on root path /features
+    caltech_filenames = np.array(
+        [filename[1:] for filename in caltech_filenames]
+    )  # remove leading / because filenames are created in colab in features folder on root path /features
 
 with open("features/filenames-voc2012.pickle", "rb") as f:
     voc_filenames = pickle.load(f)
     voc_filenames = np.array([filename[1:] for filename in voc_filenames])
-    
+
 indexes = {
     "caltech": faiss.read_index("gradio/index_ivfpq_caltech.index"),
-    "voc": faiss.read_index("gradio/index_ivfpq_voc.index")
+    "voc": faiss.read_index("gradio/index_ivfpq_voc.index"),
 }
 
 model = ResNet50(
@@ -61,59 +63,71 @@ def search(inp, data, k):
     )  # Prevent ValueError: Number of output components does not match number of values returned from from function find_similar
     return result_filenames
 
-online_image_url = gr.Textbox(placeholder="Link to jpg, png, gif") # https://gradio.app/controlling-layout/#defining-and-rendering-components-separately
+
+online_image_url = gr.Textbox(
+    placeholder="Link to jpg, png, gif"
+)  # https://gradio.app/controlling-layout/#defining-and-rendering-components-separately
 
 similar_css = """#similar {
                             height: 950px;
                             overflow-y: scroll !important;
                           }
                  h2 span { font-size:16px; }
-                 h2 { margin: 0 !important; }"
+                 h2 { margin: 0 !important; }
+                 .gradio-container { background-image: url('file=figures/unicorn.png');
+                            background-size: contain;
+                            max-width: 65% !important;
+                        }
          """
-         # !important because overflow-y: scroll is being overwritten by parent container style of overflow: visible
-with gr.Blocks(css = similar_css) as demo:
-
+# !important because overflow-y: scroll is being overwritten by parent container style of overflow: visible
+with gr.Blocks(css=similar_css) as demo:
     gr.Markdown(
         """<h1><center>Caltech101 and VOC2012 Reverse Image Search</center></h1>"""
     )
-    
+
     with gr.Row():
         with gr.Column():
-            gr.Markdown("<h2>Image to Search 🔍   <span>Previews can be cropped (pencil icon)</span></h2>")
-        
+            gr.Markdown(
+                "<h2>Image to Search 🔍   <span>Previews can be cropped (pencil icon)</span></h2>"
+            )
+
             with gr.Row():
                 with gr.Column():
                     to_search_webcam = gr.Image(
-                        interactive=True, 
-                        label="To Search 🔮",  
-                        source='webcam',
-                        visible=False, 
-                        mirror_webcam=False, # prevent weird UX when users mirroring to and fro between To Search and Last Searched
+                        interactive=True,
+                        label="To Search 🔮",
+                        source="webcam",
+                        visible=False,
+                        mirror_webcam=False,  # prevent weird UX when users mirroring to and fro between To Search and Last Searched
                         type="pil",
                     )  # pil type so resize can be called, if no don't specify interactive, Dataset component pointing to this causes this to not allow upload because it's seen as output
-                    
+
                     to_search = gr.Image(
-                        interactive=True, 
-                        label="To Search 🔮",  
-                        source='upload',
-                        visible=True, 
-                        mirror_webcam=False, # prevent weird UX when users mirroring to and fro between To Search and Last Searched
+                        interactive=True,
+                        label="To Search 🔮",
+                        source="upload",
+                        visible=True,
+                        mirror_webcam=False,  # prevent weird UX when users mirroring to and fro between To Search and Last Searched
                         type="pil",
                     )  # pil type so resize can be called, if no don't specify interactive, Dataset component pointing to this causes this to not allow upload because it's seen as output
                     mirror_curr_prev = gr.Button(
                         value="Copy To Search to Last Searched ➡️"
                     )
-                    upload_webcam = gr.Checkbox(label='Use Webcam')
-                    upload_webcam.change(lambda checked: gr.update(visible=checked), 
-                                         inputs=upload_webcam,
-                                         outputs=to_search_webcam)
-                    
+                    upload_webcam = gr.Checkbox(label="Use Webcam")
+                    upload_webcam.change(
+                        lambda checked: gr.update(visible=checked),
+                        inputs=upload_webcam,
+                        outputs=to_search_webcam,
+                    )
+
                 with gr.Column():
                     last_search = gr.Image(label="Last Searched ✅", type="pil")
                     mirror_prev_curr = gr.Button(
                         value="⬅️ Copy Last Searched to To Search"
                     )
-                to_search_webcam.change(lambda x:x, inputs=to_search_webcam,outputs=to_search)
+                to_search_webcam.change(
+                    lambda x: x, inputs=to_search_webcam, outputs=to_search
+                )
                 mirror_curr_prev.click(
                     lambda x: x, inputs=to_search, outputs=last_search
                 )
@@ -151,27 +165,38 @@ with gr.Blocks(css = similar_css) as demo:
                 )
 
                 dataset.click(lambda x: x[0], inputs=dataset, outputs=to_search)
-                
+
             with gr.Tab("Use public image url"):
                 gr.Markdown("""**Please enter valid image url** 📭""")
                 gr.Examples(
-                            [["https://nationaltoday.com/wp-content/uploads/2020/04/unicorn-1-1.jpg"],["https://stpaulpet.com/wp-content/uploads/dog-facts-cat-facts.jpg"]],
-                            online_image_url
-                        )
+                    [
+                        [
+                            "https://nationaltoday.com/wp-content/uploads/2020/04/unicorn-1-1.jpg"
+                        ],
+                        [
+                            "https://stpaulpet.com/wp-content/uploads/dog-facts-cat-facts.jpg"
+                        ],
+                    ],
+                    online_image_url,
+                )
                 online_image_url.render()
                 online_image_url.change(
                     read_online_image, inputs=online_image_url, outputs=to_search
                 )
 
-            gr.Markdown("<h2>Choose Collection 🎨   <span>Updates examples, gallery, search results</span></h2>",)
+            gr.Markdown(
+                "<h2>Choose Collection 🎨   <span>Updates examples, gallery, search results</span></h2>",
+            )
             collection = gr.Dropdown(
                 choices=["caltech", "voc"],
                 value="caltech",
                 interactive=True,
-                label=None
+                label=None,
             )
 
-            gr.Markdown("""<h2>Gallery   <span>Click to enlarge, Right-click to download</span></h2>""")
+            gr.Markdown(
+                """<h2>Gallery   <span>Click to enlarge, Right-click to download</span></h2>"""
+            )
             gallery_choices = {
                 "caltech": [
                     caltech_filenames[i]
@@ -199,11 +224,11 @@ with gr.Blocks(css = similar_css) as demo:
                 inputs=collection,
                 outputs=gallery,
             )
-        
+
         with gr.Column():
             gr.Markdown("## Similar Images 🔎")
-            initial_slider_value = 3    
-            
+            initial_slider_value = 3
+
             slider = gr.Slider(
                 value=initial_slider_value,
                 minimum=1,
@@ -213,20 +238,21 @@ with gr.Blocks(css = similar_css) as demo:
                 label="Number of similar images to show",
             )
             search_again = gr.Radio(
-                choices=list(map(str,range(1, initial_slider_value+1))),
+                choices=list(map(str, range(1, initial_slider_value + 1))),
                 label="Which of the similar images do you want to search again? ♻️",
             )
-            with gr.Box(elem_id='similar'):  # need this wrapper to group images together for css targeting, and to separate from Radio component below
+            with gr.Box(
+                elem_id="similar"
+            ):  # need this wrapper to group images together for css targeting, and to separate from Radio component below
                 similar_images = [
                     gr.Image(
                         value=random.choice(caltech_filenames),
                         label=f"Image {i+1}",
                         visible=i < initial_slider_value,
-                        interactive=False, # images interactive False for nicer display where width fits column. If want to edit, use radio buttons at bottom that copies these to To Search box on top left
+                        interactive=False,  # images interactive False for nicer display where width fits column. If want to edit, use radio buttons at bottom that copies these to To Search box on top left
                     )
                     for i in range(5)
                 ]
-            
 
         def update_search_dropdown(k_neighbors):
             return gr.update(choices=list(range(1, k_neighbors + 1)))

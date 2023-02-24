@@ -375,7 +375,8 @@ class CustomIndexIVFPQ:
         D, I = self.find_smallest_k(nprobe_distances, nprobe_filtered_ids, k_nearest)
 
         return D, I
-    
+
+
 from sklearn.decomposition import PCA
 
 if __name__ == "__main__":
@@ -383,16 +384,16 @@ if __name__ == "__main__":
     m = 8
     nlist = 100
     nbits = 8
-    custom_ivfpq = CustomIndexIVFPQ(d,m,nlist,nbits)
+    custom_ivfpq = CustomIndexIVFPQ(d, m, nlist, nbits)
 
-    feature_list = pickle.load(open('features/features-caltech101-resnet.pickle','rb'))
+    feature_list = pickle.load(open("features/features-caltech101-resnet.pickle", "rb"))
     # feature_list = feature_list/np.linalg.norm(feature_list,axis=1).reshape(-1,1)  # normalize features so each column has length 1
     pca = PCA(n_components=128)
     feature_list_compressed = pca.fit_transform(feature_list)
 
     custom_ivfpq.train(feature_list_compressed)
     custom_ivfpq.add(feature_list_compressed)
-    
+
     k_nearest = 6
 
     nprobe_test = {}
@@ -402,17 +403,18 @@ if __name__ == "__main__":
     for nprobe in nprobes_to_test:
         D_list = []
         I_list = []
-        
+
         for query in feature_list_compressed:
-            D, I = custom_ivfpq.search(query.reshape(1,-1),   #sklearn euclidean_distances needs 2D
-                                    k_nearest)
-            D_list.append(D)   
+            D, I = custom_ivfpq.search(
+                query.reshape(1, -1), k_nearest  # sklearn euclidean_distances needs 2D
+            )
+            D_list.append(D)
             I_list.append(I)
-            
+
         D_list = np.array(D_list, dtype=np.float32)
         I_list = np.array(I_list, dtype=np.uint64)
-        
+
         nprobe_test[nprobe] = (D_list, I_list)
-        
-    print('I_list: ',I_list.shape)
-    print('Sample Indices of first 5 query points: ', I_list[:5])
+
+    print("I_list: ", I_list.shape)
+    print("Sample Indices of first 5 query points: ", I_list[:5])

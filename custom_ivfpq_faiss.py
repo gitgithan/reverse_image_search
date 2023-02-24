@@ -3,11 +3,12 @@ import heapq
 import itertools
 import pathos.pools as pp
 import operator
-import pickle 
+import pickle
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
 import faiss
+
 
 class CustomIndexIVFPQ:
     BITS2DTYPE = {
@@ -52,13 +53,12 @@ class CustomIndexIVFPQ:
         self.coarse_quantizer = faiss.Kmeans(d, nlist, seed=1)
         self.inverted_list = defaultdict(list)
         self.max_id = 0  # to start following batches of vector adding from the right index to prevent duplicate ids if in different IVF cell or overwriting of data if in same IVF cell
-        self.codes_db = np.empty(
-            (0, m), dtype=CustomIndexIVFPQ.BITS2DTYPE[nbits]
-        ) 
+        self.codes_db = np.empty((0, m), dtype=CustomIndexIVFPQ.BITS2DTYPE[nbits])
 
         self.fine_quantizers = [
             # KMeans(n_clusters=self.k, random_state=1) for _ in range(m)
-            faiss.Kmeans(self.ds, self.k, seed=1) for _ in range(m)
+            faiss.Kmeans(self.ds, self.k, seed=1)
+            for _ in range(m)
         ]
 
         self.is_trained = False
@@ -82,7 +82,9 @@ class CustomIndexIVFPQ:
         self.coarse_quantizer.train(feature_list)
         feature_list_residual = (
             feature_list
-            - self.coarse_quantizer.centroids[self.coarse_quantizer.assign(feature_list)[1]]
+            - self.coarse_quantizer.centroids[
+                self.coarse_quantizer.assign(feature_list)[1]
+            ]
         )  # generate residual database vectors to be fine quantized
         return feature_list_residual
 
@@ -142,8 +144,9 @@ class CustomIndexIVFPQ:
         for i in range(self.m):
             estimator = self.fine_quantizers[i]
             X_i = feature_list_residual[:, i * self.ds : (i + 1) * self.ds]
-            codes[:, i] = estimator.assign(
-                X_i)[1]  # shape n number of vectors, m segments
+            codes[:, i] = estimator.assign(X_i)[
+                1
+            ]  # shape n number of vectors, m segments
 
         return codes
 
@@ -379,7 +382,10 @@ class CustomIndexIVFPQ:
 
         # some will return < k neighbors, need to pad on right to form rectangular result array
         # assigning -1 into uint8 causes 18446744073709551615, ok for evaluation as long as doesn't match a ground truth index
-        return np.pad(D,pad_width=(0,k_nearest-len(D)),constant_values=-1), np.pad(I,pad_width=(0,k_nearest-len(I)),constant_values=-1) 
+        return np.pad(D, pad_width=(0, k_nearest - len(D)), constant_values=-1), np.pad(
+            I, pad_width=(0, k_nearest - len(I)), constant_values=-1
+        )
+
 
 from sklearn.decomposition import PCA
 
@@ -388,17 +394,17 @@ if __name__ == "__main__":
     m = 8
     nlist = 100
     nbits = 8
-    custom_ivfpq = CustomIndexIVFPQ(d,m,nlist,nbits)
+    custom_ivfpq = CustomIndexIVFPQ(d, m, nlist, nbits)
 
-    feature_list = pickle.load(open('features/features-caltech101-resnet.pickle','rb'))
+    feature_list = pickle.load(open("features/features-caltech101-resnet.pickle", "rb"))
     # feature_list = feature_list/np.linalg.norm(feature_list,axis=1).reshape(-1,1)  # normalize features so each column has length 1
     pca = PCA(n_components=128)
     feature_list_compressed = pca.fit_transform(feature_list)
 
     custom_ivfpq.train(feature_list_compressed)
-    
+
     custom_ivfpq.add(feature_list_compressed)
-    
+
     k_nearest = 6
 
     nprobe_test = {}
@@ -408,17 +414,18 @@ if __name__ == "__main__":
     for nprobe in nprobes_to_test:
         D_list = []
         I_list = []
-        
+
         for query in feature_list_compressed:
-            D, I = custom_ivfpq.search(query.reshape(1,-1),   #sklearn euclidean_distances needs 2D
-                                    k_nearest)
-            D_list.append(D)   
+            D, I = custom_ivfpq.search(
+                query.reshape(1, -1), k_nearest  # sklearn euclidean_distances needs 2D
+            )
+            D_list.append(D)
             I_list.append(I)
-            
+
         D_list = np.array(D_list, dtype=np.float32)
         I_list = np.array(I_list, dtype=np.uint64)
-        
+
         nprobe_test[nprobe] = (D_list, I_list)
-        
-    print('I_list: ',I_list.shape)
-    print('Sample Indices of first 5 query points: ', I_list[:5])
+
+    print("I_list: ", I_list.shape)
+    print("Sample Indices of first 5 query points: ", I_list[:5])
