@@ -64,7 +64,7 @@ pip install -r requirements.txt
 1. `custom_ivfpq_faiss.py` - pure python (except clustering section) implementation of [IVFPQ paper](https://lear.inrialpes.fr/pubs/2011/JDS11/jegou_searching_with_quantization.pdf), with tweaks in inverted file data structure
    - run with `python custom_ivfpq_faiss.py`, < 2 seconds to train
    - Development process in `notebooks/index_search.ipynb`
-   - Summary of API design in `ivfpq.pptx`
+   - Editable API design in `ivfpq.pptx` ![image](figures/ivfpq.png)
 2. `custom_ivfpq.py` - same content as previous, except using sklearn Kmeans instead of faiss.Kmeans
    - run with `python custom_ivfpq.py`, 40 seconds to fit, 20 seconds to predict all ~9000 caltech101 images
 3. `gradio`
@@ -75,11 +75,15 @@ pip install -r requirements.txt
 
    - `feature_extraction.ipynb` - Convert data to dense feature by fine-tuning models, to be indexed for search
      - run in colab for GPU, filepaths generated there are on root `/features`, `/datasets` to prevent network transfer latency with google drive, should remove leading / if run locally to prevent messing with filesystem
-   - `visualizations.ipynb` - [Federpy](https://github.com/zilliztech/feder) visualizations of faiss IndexIVFFlat and hnswlib
-
-     - run in colab because hnswlib cannot be installed locally (`ERROR: Could not build wheels for hnswlib which use PEP 517 and cannot be installed directly`)
-
    - `runtime_experiments.ipynb`- Experiments on index/search runtime performances of sklearn KNN and Annoy libraries
      - :warning: Start notebook with `%chdir ..` so current directory contains `notebooks` and `open()` can access `features`, `datasets`
    - `index_search.ipynb` - Experiments on speed, memory and recall tradeoffs of faiss ANN algorithms and custom implementations of IVFPQ (inverted file index with product quantization)
      - :warning: Start notebook with `%chdir ..` so current directory contains `notebooks` and `open()` can access `features`, `datasets`
+   - `visualizations.ipynb` - [Federpy](https://github.com/zilliztech/feder) visualizations of faiss IndexIVFFlat and hnswlib
+     - run in colab because hnswlib cannot be installed locally (`ERROR: Could not build wheels for hnswlib which use PEP 517 and cannot be installed directly`)
+     - indexes and images are hosted on S3, local files [do not work]https://github.com/zilliztech/feder/issues/71#issuecomment-1436404523
+     - Example visualizations
+       ![image](/figures/hnsw.png)
+       ![image](/figures/ivfoverview.png)
+       ![image](/figures/ivfdistance.png)
+       ![image](/figures/ivfumap.png)
