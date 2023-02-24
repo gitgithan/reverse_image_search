@@ -1,3 +1,7 @@
+# Reverse Image Search
+
+![image](figures/gradio.png)
+
 # Setup :wrench:
 
 1. **Create virtual environment and install requirements**
@@ -14,7 +18,7 @@ pip install -r requirements.txt
 3. **Create Indexes** (optional since already created)
    - `python gradio/create_index.py --data caltech` (`caltech` can be substituted with `voc`)
 4. **Run gradio** (ensure `features` and `datasets` folder exist at same level as gradio folder)
-   - `python gradio/block.py`
+   - `python gradio/block.py` (it will request webcam access, close browser tab running gradio to shut webcam)
 
 # Folder Structure :file_folder:
 
@@ -22,9 +26,6 @@ pip install -r requirements.txt
 .
 ├── Makefile
 ├── README.md
-├── __pycache__
-│   ├── custom_ivfpq.cpython-38.pyc
-│   └── test_custom_ivfpq.cpython-38-pytest-7.2.1.pyc
 ├── custom_ivfpq.py
 ├── custom_ivfpq_faiss.py
 ├── data_download.sh
@@ -39,6 +40,13 @@ pip install -r requirements.txt
 │   ├── features-voc2012-resnet.pickle
 │   ├── filenames-caltech101.pickle
 │   └── filenames-voc2012.pickle
+├── figures
+│   ├── gradio.png
+│   ├── hnsw.png
+│   ├── ivfdistance.png
+│   ├── ivfoverview.png
+│   ├── ivfpq.png
+│   └── ivfumap.png
 ├── gradio
 │   ├── block.py
 │   ├── create_index.py
@@ -65,7 +73,7 @@ pip install -r requirements.txt
    - run with `python custom_ivfpq_faiss.py`, < 2 seconds to train
    - Development process in `notebooks/index_search.ipynb`
    - Editable API design in `ivfpq.pptx` ![image](figures/ivfpq.png)
-2. `custom_ivfpq.py` - same content as previous, except using sklearn Kmeans instead of faiss.Kmeans
+2. `custom_ivfpq.py` - same content as previous, except using sklearn Kmeans instead of faiss.Kmeans for both coarse and fine quantizers
    - run with `python custom_ivfpq.py`, 40 seconds to fit, 20 seconds to predict all ~9000 caltech101 images
 3. `test_custom_ivfpq.py` - tests for `custom_ivfpq_faiss.py`
    - run with `make pytest`
@@ -83,9 +91,13 @@ pip install -r requirements.txt
      - :warning: Start notebook with `%%cd ..` so current directory contains `notebooks` and `open()` can access `features`, `datasets`
    - `visualizations.ipynb` - [Federpy](https://github.com/zilliztech/feder) visualizations of faiss IndexIVFFlat and hnswlib
      - run in colab because hnswlib cannot be installed locally (`ERROR: Could not build wheels for hnswlib which use PEP 517 and cannot be installed directly`)
-     - indexes and images are hosted on S3, local files [do not work]https://github.com/zilliztech/feder/issues/71#issuecomment-1436404523
+     - indexes and images are hosted on S3, local files [do not work](https://github.com/zilliztech/feder/issues/71#issuecomment-1436404523)
      - Example visualizations
        ![image](/figures/hnsw.png)
        ![image](/figures/ivfoverview.png)
        ![image](/figures/ivfdistance.png)
        ![image](/figures/ivfumap.png)
+
+```
+
+```
