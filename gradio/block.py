@@ -63,29 +63,57 @@ def search(inp, data, k):
 
 online_image_url = gr.Textbox(placeholder="Link to jpg, png, gif") # https://gradio.app/controlling-layout/#defining-and-rendering-components-separately
 
-with gr.Blocks() as demo:
+similar_css = """#similar {
+                            height: 950px;
+                            overflow-y: scroll !important;
+                          }
+                 h2 span { font-size:16px; }
+                 h2 { margin: 0 !important; }"
+         """
+         # !important because overflow-y: scroll is being overwritten by parent container style of overflow: visible
+with gr.Blocks(css = similar_css) as demo:
+
     gr.Markdown(
         """<h1><center>Caltech101 and VOC2012 Reverse Image Search</center></h1>"""
     )
-    num_images = 2
+    
     with gr.Row():
         with gr.Column():
-            gr.Markdown("## Image to Search 🔍")
-            gr.Markdown('Previews can be cropped with pencil icon on top right')
+            gr.Markdown("<h2>Image to Search 🔍   <span>Previews can be cropped (pencil icon)</span></h2>")
+        
             with gr.Row():
                 with gr.Column():
+                    to_search_webcam = gr.Image(
+                        interactive=True, 
+                        label="To Search 🔮",  
+                        source='webcam',
+                        visible=False, 
+                        mirror_webcam=False, # prevent weird UX when users mirroring to and fro between To Search and Last Searched
+                        type="pil",
+                    )  # pil type so resize can be called, if no don't specify interactive, Dataset component pointing to this causes this to not allow upload because it's seen as output
+                    
                     to_search = gr.Image(
-                        interactive=True, label="To Search 🔮", type="pil"
+                        interactive=True, 
+                        label="To Search 🔮",  
+                        source='upload',
+                        visible=True, 
+                        mirror_webcam=False, # prevent weird UX when users mirroring to and fro between To Search and Last Searched
+                        type="pil",
                     )  # pil type so resize can be called, if no don't specify interactive, Dataset component pointing to this causes this to not allow upload because it's seen as output
                     mirror_curr_prev = gr.Button(
                         value="Copy To Search to Last Searched ➡️"
                     )
+                    upload_webcam = gr.Checkbox(label='Use Webcam')
+                    upload_webcam.change(lambda checked: gr.update(visible=checked), 
+                                         inputs=upload_webcam,
+                                         outputs=to_search_webcam)
+                    
                 with gr.Column():
                     last_search = gr.Image(label="Last Searched ✅", type="pil")
                     mirror_prev_curr = gr.Button(
                         value="⬅️ Copy Last Searched to To Search"
                     )
-
+                to_search_webcam.change(lambda x:x, inputs=to_search_webcam,outputs=to_search)
                 mirror_curr_prev.click(
                     lambda x: x, inputs=to_search, outputs=last_search
                 )
@@ -94,9 +122,8 @@ with gr.Blocks() as demo:
                 )
 
             search_btn = gr.Button("Search", variant="primary")
-            with gr.Tab("Use examples"):
-                gr.Markdown("## Examples 💡")
-                gr.Markdown('Click any example to populate To Search')
+            with gr.Tab("Use examples from collection"):
+                gr.Markdown("**Click any example to populate To Search 💡**")
 
                 dataset_choices = {
                     "caltech": [
@@ -123,7 +150,7 @@ with gr.Blocks() as demo:
                     samples_per_page=10,
                 )
 
-                dataset.click(lambda x: x[0], inputs=dataset, outputs=to_search, scroll_to_output=True)
+                dataset.click(lambda x: x[0], inputs=dataset, outputs=to_search)
                 
             with gr.Tab("Use public image url"):
                 gr.Markdown("""**Please enter valid image url** 📭""")
@@ -136,28 +163,15 @@ with gr.Blocks() as demo:
                     read_online_image, inputs=online_image_url, outputs=to_search
                 )
 
-            gr.Markdown("## Choose Collection 🎨",)
+            gr.Markdown("<h2>Choose Collection 🎨   <span>Updates examples, gallery, search results</span></h2>",)
             collection = gr.Dropdown(
                 choices=["caltech", "voc"],
                 value="caltech",
-                label="Updates examples, search results",
                 interactive=True,
-            )
-            initial_slider_value = 3    
-            
-            slider = gr.Slider(
-                value=initial_slider_value,
-                minimum=1,
-                maximum=5,
-                step=1,
-                interactive=True,
-                label="Number of similar images to show",
+                label=None
             )
 
-            gr.Markdown(
-                """## Gallery
-                        click to enlarge, right-click to download"""
-            )
+            gr.Markdown("""<h2>Gallery   <span>Click to enlarge, Right-click to download</span></h2>""")
             gallery_choices = {
                 "caltech": [
                     caltech_filenames[i]
@@ -185,25 +199,34 @@ with gr.Blocks() as demo:
                 inputs=collection,
                 outputs=gallery,
             )
-
+        
         with gr.Column():
             gr.Markdown("## Similar Images 🔎")
-            similar_images = [
-                gr.Image(
-                    value=random.choice(caltech_filenames),
-                    label=f"Image {i+1}",
-                    visible=i < initial_slider_value,
-                    interactive=False, # images interactive False for nicer display where width fits column. If want to edit, use radio buttons at bottom that copies these to To Search box on top left
-                )
-                for i in range(5)
-            ]
-            with gr.Row():
-                with gr.Column():
-                    gr.Markdown("## Search with Similar ♻️")
-                    search_again = gr.Radio(
-                        choices=list(map(str,range(1, initial_slider_value+1))),
-                        label="Which of the above similar images do you want to search again?",
+            initial_slider_value = 3    
+            
+            slider = gr.Slider(
+                value=initial_slider_value,
+                minimum=1,
+                maximum=5,
+                step=1,
+                interactive=True,
+                label="Number of similar images to show",
+            )
+            search_again = gr.Radio(
+                choices=list(map(str,range(1, initial_slider_value+1))),
+                label="Which of the similar images do you want to search again? ♻️",
+            )
+            with gr.Box(elem_id='similar'):  # need this wrapper to group images together for css targeting, and to separate from Radio component below
+                similar_images = [
+                    gr.Image(
+                        value=random.choice(caltech_filenames),
+                        label=f"Image {i+1}",
+                        visible=i < initial_slider_value,
+                        interactive=False, # images interactive False for nicer display where width fits column. If want to edit, use radio buttons at bottom that copies these to To Search box on top left
                     )
+                    for i in range(5)
+                ]
+            
 
         def update_search_dropdown(k_neighbors):
             return gr.update(choices=list(range(1, k_neighbors + 1)))
@@ -216,8 +239,7 @@ with gr.Blocks() as demo:
 
         slider.change(update_search_dropdown, inputs=slider, outputs=search_again)
         search_again.change(
-            mirror_to_preview, inputs=[search_again] + similar_images, outputs=to_search,
-            scroll_to_output=True
+            mirror_to_preview, inputs=[search_again] + similar_images, outputs=to_search
         )
 
         def image_visibility(k_neighbors):
