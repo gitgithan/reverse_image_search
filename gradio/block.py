@@ -61,6 +61,7 @@ def search(inp, data, k):
     )  # Prevent ValueError: Number of output components does not match number of values returned from from function find_similar
     return result_filenames
 
+online_image_url = gr.Textbox(placeholder="Link to jpg, png, gif") # https://gradio.app/controlling-layout/#defining-and-rendering-components-separately
 
 with gr.Blocks() as demo:
     gr.Markdown(
@@ -69,19 +70,20 @@ with gr.Blocks() as demo:
     num_images = 2
     with gr.Row():
         with gr.Column():
-            gr.Markdown("## Image to Search")
+            gr.Markdown("## Image to Search 🔍")
+            gr.Markdown('Previews can be cropped with pencil icon on top right')
             with gr.Row():
                 with gr.Column():
                     to_search = gr.Image(
-                        interactive=True, label="To Search", type="pil"
+                        interactive=True, label="To Search 🔮", type="pil"
                     )  # pil type so resize can be called, if no don't specify interactive, Dataset component pointing to this causes this to not allow upload because it's seen as output
                     mirror_curr_prev = gr.Button(
-                        value="Copy To Search to Last Searched"
+                        value="Copy To Search to Last Searched ➡️"
                     )
                 with gr.Column():
-                    last_search = gr.Image(label="Last Searched", type="pil")
+                    last_search = gr.Image(label="Last Searched ✅", type="pil")
                     mirror_prev_curr = gr.Button(
-                        value="Copy Last Searched to To Search"
+                        value="⬅️ Copy Last Searched to To Search"
                     )
 
                 mirror_curr_prev.click(
@@ -92,53 +94,59 @@ with gr.Blocks() as demo:
                 )
 
             search_btn = gr.Button("Search", variant="primary")
-            gr.Markdown("## Examples")
+            with gr.Tab("Use examples"):
+                gr.Markdown("## Examples 💡")
+                gr.Markdown('Click any example to populate To Search')
 
-            dataset_choices = {
-                "caltech": [
-                    [caltech_filenames[i]]
-                    for i in np.random.choice(
-                        range(len(caltech_filenames)), replace=False, size=50
-                    )
-                ],
-                "voc": [
-                    [voc_filenames[i]]
-                    for i in np.random.choice(
-                        range(len(voc_filenames)), replace=False, size=50
-                    )
-                ],
-            }
-            dataset = gr.Dataset(
-                components=[to_search],
-                samples=[
-                    [caltech_filenames[i]]
-                    for i in np.random.choice(
-                        range(len(caltech_filenames)), replace=False, size=50
-                    )
-                ],
-                samples_per_page=10,
-            )
+                dataset_choices = {
+                    "caltech": [
+                        [caltech_filenames[i]]
+                        for i in np.random.choice(
+                            range(len(caltech_filenames)), replace=False, size=50
+                        )
+                    ],
+                    "voc": [
+                        [voc_filenames[i]]
+                        for i in np.random.choice(
+                            range(len(voc_filenames)), replace=False, size=50
+                        )
+                    ],
+                }
+                dataset = gr.Dataset(
+                    components=[to_search],
+                    samples=[
+                        [caltech_filenames[i]]
+                        for i in np.random.choice(
+                            range(len(caltech_filenames)), replace=False, size=50
+                        )
+                    ],
+                    samples_per_page=10,
+                )
 
-            dataset.click(lambda x: x[0], inputs=dataset, outputs=to_search)
+                dataset.click(lambda x: x[0], inputs=dataset, outputs=to_search, scroll_to_output=True)
+                
+            with gr.Tab("Use public image url"):
+                gr.Markdown("""**Please enter valid image url** 📭""")
+                gr.Examples(
+                            [["https://nationaltoday.com/wp-content/uploads/2020/04/unicorn-1-1.jpg"],["https://stpaulpet.com/wp-content/uploads/dog-facts-cat-facts.jpg"]],
+                            online_image_url
+                        )
+                online_image_url.render()
+                online_image_url.change(
+                    read_online_image, inputs=online_image_url, outputs=to_search
+                )
 
-            gr.Markdown("""**Please enter valid image url**""")
-            online_image_url = gr.Textbox(
-                value="https://cdn.britannica.com/91/181391-050-1DA18304/cat-toes-paw-number-paws-tiger-tabby.jpg",
-                placeholder="Link to jpg, png, gif",
-            )
-            online_image_url.change(
-                read_online_image, inputs=online_image_url, outputs=to_search
-            )
-
+            gr.Markdown("## Choose Collection 🎨",)
             collection = gr.Dropdown(
                 choices=["caltech", "voc"],
-                label="Choose your Image Collection",
                 value="caltech",
+                label="Updates examples, search results",
                 interactive=True,
             )
-
+            initial_slider_value = 3    
+            
             slider = gr.Slider(
-                value=5,
+                value=initial_slider_value,
                 minimum=1,
                 maximum=5,
                 step=1,
@@ -147,7 +155,7 @@ with gr.Blocks() as demo:
             )
 
             gr.Markdown(
-                """# Sample of selected image collection
+                """## Gallery
                         click to enlarge, right-click to download"""
             )
             gallery_choices = {
@@ -179,22 +187,23 @@ with gr.Blocks() as demo:
             )
 
         with gr.Column():
-            gr.Markdown("# Similar Images")
-            # images interactive False for nicer display where width fits column. If want to edit, use radio buttons at bottom that copies these to To Search box on top left
+            gr.Markdown("## Similar Images 🔎")
             similar_images = [
                 gr.Image(
                     value=random.choice(caltech_filenames),
                     label=f"Image {i+1}",
-                    visible=True,
-                    interactive=False,
+                    visible=i < initial_slider_value,
+                    interactive=False, # images interactive False for nicer display where width fits column. If want to edit, use radio buttons at bottom that copies these to To Search box on top left
                 )
                 for i in range(5)
             ]
-            gr.Markdown("## Search with Similar Images")
-            search_again = gr.Radio(
-                choices=["1", "2", "3", "4", "5"],
-                label="Which of the above similar images do you want to search again?",
-            )
+            with gr.Row():
+                with gr.Column():
+                    gr.Markdown("## Search with Similar ♻️")
+                    search_again = gr.Radio(
+                        choices=list(map(str,range(1, initial_slider_value+1))),
+                        label="Which of the above similar images do you want to search again?",
+                    )
 
         def update_search_dropdown(k_neighbors):
             return gr.update(choices=list(range(1, k_neighbors + 1)))
@@ -207,7 +216,8 @@ with gr.Blocks() as demo:
 
         slider.change(update_search_dropdown, inputs=slider, outputs=search_again)
         search_again.change(
-            mirror_to_preview, inputs=[search_again] + similar_images, outputs=to_search
+            mirror_to_preview, inputs=[search_again] + similar_images, outputs=to_search,
+            scroll_to_output=True
         )
 
         def image_visibility(k_neighbors):
@@ -221,6 +231,7 @@ with gr.Blocks() as demo:
     inputs = [to_search, collection, slider]
     search_btn.click(search, inputs=inputs, outputs=similar_images)
     search_btn.click(lambda x: x, inputs=to_search, outputs=last_search)
+    collection.change(search, inputs=inputs, outputs=similar_images)
 
 if __name__ == "__main__":
     demo.launch(share=True)

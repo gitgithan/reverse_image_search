@@ -1,7 +1,7 @@
 import pickle
 import numpy as np
 import pytest
-from custom_ivfpq import CustomIndexIVFPQ
+from custom_ivfpq_faiss import CustomIndexIVFPQ
     
 @pytest.fixture()
 def index():
