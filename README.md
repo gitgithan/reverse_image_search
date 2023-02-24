@@ -2,6 +2,27 @@
 
 ![image](figures/gradio.png)
 
+# Description :crystal_ball:
+
+Lets you search for up to 5 similar images in [Caltech101 dataset](https://data.caltech.edu/records/mzrjq-6wc02), or [VOC2012 dataset](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/#devkit) using pre-loaded indexes.
+
+**Four ways of searching**
+
+- Click the examples
+- Upload your own
+- Capture from webcam
+- Paste a public url
+
+**Refining your search**
+
+- Crop the image
+- Mirror between the 2 windows to compare while editing
+- Reuse outputs as inputs
+
+**How it works**
+
+Resnet50 feature extractor turn images to 2048 dimensional vectors before being added to faiss IVF100,PQ8 index. Index update is not supported, but could happen by training new index then merging on disk.
+
 # Setup :wrench:
 
 1. **Create virtual environment and install requirements**
