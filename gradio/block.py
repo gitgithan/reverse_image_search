@@ -75,9 +75,13 @@ similar_css = """#similar {
                  h2 span { font-size:16px; }
                  h2 { margin: 0 !important; }
                  .gradio-container { background-image: url('file=figures/unicorn.png');
-                            background-size: contain;
-                            max-width: 65% !important;
+                                     background-size: contain;
+                                     max-width: 80% !important;
                         }
+                        
+                div#gallery_search > div:nth-child(3) {
+                                     min-height: 700px;
+                            }
          """
 # !important because overflow-y: scroll is being overwritten by parent container style of overflow: visible
 with gr.Blocks(css=similar_css) as demo:
@@ -211,7 +215,7 @@ with gr.Blocks(css=similar_css) as demo:
                     )
                 ],
             }
-            gallery = gr.Gallery(gallery_choices["caltech"]).style(grid=[5], height=400)
+            gallery = gr.Gallery(gallery_choices["caltech"],elem_id="gallery_search").style(grid=[4])
             collection.change(
                 lambda collection: gr.Dataset.update(
                     samples=dataset_choices[collection]
