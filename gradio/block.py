@@ -27,11 +27,24 @@ indexes = {
     "voc": faiss.read_index("gradio/index_ivfpq_voc.index"),
 }
 
-samples=[
+dataset_choices = {
+    "caltech": 
+        [
         [caltech_filenames[i]]
         for i in np.random.choice(
-            range(len(caltech_filenames)), replace=False, size=50)
-]
+            range(len(caltech_filenames)), replace=False, size=50
+        )
+    ],
+    "voc": 
+        [
+        [voc_filenames[i]]
+        for i in np.random.choice(
+            range(len(voc_filenames)), replace=False, size=50
+        )
+    ],
+}
+
+samples = dataset_choices['caltech'] # to define it for dataset.click(load_samples
 
 model = ResNet50(
     weights="imagenet", include_top=False, input_shape=(224, 224, 3), pooling="max"
@@ -173,26 +186,10 @@ with gr.Blocks(css=similar_css) as demo:
             search_btn = gr.Button("Search", variant="primary")
             with gr.Tab("Use examples from collection"):
                 gr.Markdown("**Click any example to populate To Search 💡**")
-
-                dataset_choices = {
-                    "caltech": 
-                        [
-                        [caltech_filenames[i]]
-                        for i in np.random.choice(
-                            range(len(caltech_filenames)), replace=False, size=50
-                        )
-                    ],
-                    "voc": 
-                        [
-                        [voc_filenames[i]]
-                        for i in np.random.choice(
-                            range(len(voc_filenames)), replace=False, size=50
-                        )
-                    ],
-                }
+                
                 dataset = gr.Dataset(
                     components=[to_search],
-                    samples=samples, # default start with caltech samples defined in global scope
+                    samples=samples, # default start with caltech samples defined in global scope, don't write dataset_choices['caltech'] or else samples undefined in dataset.click(load_samples)
                     samples_per_page=10,
                     type="index"
                 )
@@ -245,18 +242,18 @@ with gr.Blocks(css=similar_css) as demo:
                     )
                 ],
             }
-            gallery = gr.Gallery(gallery_choices["caltech"],elem_id="gallery_search").style(grid=[4])
+            # gallery = gr.Gallery(gallery_choices["caltech"],elem_id="gallery_search").style(grid=[4])
             
             collection.change(
                 update_examples,
                 inputs=collection,
                 outputs=dataset,
             )
-            collection.change(
-                lambda collection: gallery.update(value=gallery_choices[collection]),
-                inputs=collection,
-                outputs=gallery,
-            )
+            # collection.change(
+            #     lambda collection: gallery.update(value=gallery_choices[collection]),
+            #     inputs=collection,
+            #     outputs=gallery,
+            # )
 
         with gr.Column():
             gr.Markdown("## Similar Images 🔎")
