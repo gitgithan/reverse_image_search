@@ -9,4 +9,5 @@ tensorflow==2.11.0
 black==23.1.0
 pathos==0.3.0
 gdown==4.6.4
+opencv-python==4.7.0.72
 jupyter

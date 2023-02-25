@@ -62,7 +62,7 @@ pip install -r requirements.txt
 │   ├── filenames-caltech101.pickle
 │   └── filenames-voc2012.pickle
 ├── figures
-│   ├── gradio.png
+│   ├── appscreenshot.png
 │   ├── hnsw.png
 │   ├── ivfdistance.png
 │   ├── ivfoverview.png

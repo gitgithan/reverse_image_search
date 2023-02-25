@@ -9,8 +9,21 @@ from PIL import Image
 import gradio as gr
 import faiss
 from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input
+from cv2 import imencode
+import base64
 
 global INDEX
+
+# Use faster converter, maybe not needed in gradio 4.0 : https://github.com/gradio-app/gradio/issues/2635#issuecomment-1423531319
+def encode_pil_to_base64_new(pil_image):
+    print("using new encoding method")
+    image_arr = np.asarray(pil_image)[:,:,::-1]
+    _, byte_data = imencode('.png', image_arr)        
+    base64_data = base64.b64encode(byte_data)
+    base64_string_opencv = base64_data.decode("utf-8")
+    return "data:image/png;base64," + base64_string_opencv
+
+gr.processing_utils.encode_pil_to_base64 = encode_pil_to_base64_new
 
 with open("features/filenames-caltech101.pickle", "rb") as f:
     caltech_filenames = pickle.load(f)
@@ -44,12 +57,13 @@ dataset_choices = {
     ],
 }
 
-samples = dataset_choices['caltech'] # to define it for dataset.click(load_samples
-
-model = ResNet50(
-    weights="imagenet", include_top=False, input_shape=(224, 224, 3), pooling="max"
-)
-
+def encode_pil_to_base64_new(pil_image):
+    print("using new encoding method")
+    image_arr = np.asarray(pil_image)[:,:,::-1]
+    _, byte_data = imencode('.png', image_arr)        
+    base64_data = base64.b64encode(byte_data)
+    base64_string_opencv = base64_data.decode("utf-8")
+    return "data:image/png;base64," + base64_string_opencv
 
 def read_online_image(image_url):
     try:  # in case users paste non-image links that cannot be read as image
@@ -112,9 +126,10 @@ online_image_url = gr.Textbox(
     placeholder="Link to jpg, png, gif"
 )  # https://gradio.app/controlling-layout/#defining-and-rendering-components-separately
 
+# overflow-y: scroll !important; because without !important it is being overwritten by parent container style of overflow: visible
 similar_css = """#similar {
                             height: 950px;
-                            overflow-y: scroll !important;
+                            overflow-y: scroll !important; 
                           }
                  h2 span { font-size:16px; }
                  h2 { margin: 0 !important; }
@@ -127,7 +142,15 @@ similar_css = """#similar {
                                      min-height: 700px;
                             }
          """
-# !important because overflow-y: scroll is being overwritten by parent container style of overflow: visible
+
+
+samples = dataset_choices['caltech'] # to define it for dataset.click(load_samples
+
+model = ResNet50(
+    weights="imagenet", include_top=False, input_shape=(224, 224, 3), pooling="max"
+)
+
+
 with gr.Blocks(css=similar_css) as demo:
     gr.Markdown(
         """<h1><center>Caltech101 and VOC2012 Reverse Image Search</center></h1>"""
@@ -197,7 +220,7 @@ with gr.Blocks(css=similar_css) as demo:
                 dataset.click(load_samples, inputs=dataset, outputs=to_search)
 
             with gr.Tab("Use public image url"):
-                gr.Markdown("""**Please enter valid image url** 📭""")
+                gr.Markdown("""**Please click examples or enter valid image url** 📭""")
                 gr.Examples(
                     [
                         [
@@ -242,18 +265,18 @@ with gr.Blocks(css=similar_css) as demo:
                     )
                 ],
             }
-            # gallery = gr.Gallery(gallery_choices["caltech"],elem_id="gallery_search").style(grid=[4])
+            gallery = gr.Gallery(gallery_choices["caltech"],elem_id="gallery_search").style(grid=[4])
+            collection.change(
+                lambda collection: gallery.update(value=gallery_choices[collection]),
+                inputs=collection,
+                outputs=gallery,
+            )
             
             collection.change(
                 update_examples,
                 inputs=collection,
                 outputs=dataset,
             )
-            # collection.change(
-            #     lambda collection: gallery.update(value=gallery_choices[collection]),
-            #     inputs=collection,
-            #     outputs=gallery,
-            # )
 
         with gr.Column():
             gr.Markdown("## Similar Images 🔎")
@@ -297,4 +320,4 @@ with gr.Blocks(css=similar_css) as demo:
     collection.change(search, inputs=inputs, outputs=similar_images)
 
 if __name__ == "__main__":
-    demo.launch(share=True, debug=True)
+    demo.launch(share=True, debug=True, server_name="0.0.0.0")
