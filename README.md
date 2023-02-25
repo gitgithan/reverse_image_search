@@ -1,6 +1,6 @@
 # Reverse Image Search
 
-![image](figures/gradio.png)
+![image](figures/appscreenshot.png)
 
 # Description :crystal_ball:
 
