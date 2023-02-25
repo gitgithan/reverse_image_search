@@ -27,6 +27,12 @@ indexes = {
     "voc": faiss.read_index("gradio/index_ivfpq_voc.index"),
 }
 
+samples=[
+        [caltech_filenames[i]]
+        for i in np.random.choice(
+            range(len(caltech_filenames)), replace=False, size=50)
+]
+
 model = ResNet50(
     weights="imagenet", include_top=False, input_shape=(224, 224, 3), pooling="max"
 )
@@ -63,7 +69,32 @@ def search(inp, data, k):
     )  # Prevent ValueError: Number of output components does not match number of values returned from from function find_similar
     return result_filenames
 
+def load_samples(file_idx):
+    # State management pattern at https://github.com/gradio-app/gradio/issues/3271#issuecomment-1440455811
+    global samples
+    return samples[file_idx][0] # extract first element because Dataset constructed with list of list by gradio api design
 
+def update_examples(collection_value):
+    global samples
+    samples = dataset_choices[collection_value]
+    return gr.Dataset.update(samples=samples)
+
+def mirror_to_preview(
+    *idx_and_similar_images,
+):  # gradio seem to need each input to be passed separately so no concept of "Group of image component" to be passed as one, receiving function does the hard work parsing
+    idx = int(idx_and_similar_images[0])
+    return idx_and_similar_images[idx]
+
+def update_search_dropdown(k_neighbors):
+    return gr.update(choices=list(range(1, k_neighbors + 1)))
+
+
+def image_visibility(k_neighbors):
+    """Gradio cannot create UI components dynamically, so fix first then edit visibility to achieve similar effect"""
+    return [gr.update(visible=True) for _ in range(k_neighbors)] + [
+        gr.update(visible=False) for _ in range(5 - k_neighbors)
+    ]
+    
 online_image_url = gr.Textbox(
     placeholder="Link to jpg, png, gif"
 )  # https://gradio.app/controlling-layout/#defining-and-rendering-components-separately
@@ -144,13 +175,15 @@ with gr.Blocks(css=similar_css) as demo:
                 gr.Markdown("**Click any example to populate To Search 💡**")
 
                 dataset_choices = {
-                    "caltech": [
+                    "caltech": 
+                        [
                         [caltech_filenames[i]]
                         for i in np.random.choice(
                             range(len(caltech_filenames)), replace=False, size=50
                         )
                     ],
-                    "voc": [
+                    "voc": 
+                        [
                         [voc_filenames[i]]
                         for i in np.random.choice(
                             range(len(voc_filenames)), replace=False, size=50
@@ -159,16 +192,12 @@ with gr.Blocks(css=similar_css) as demo:
                 }
                 dataset = gr.Dataset(
                     components=[to_search],
-                    samples=[
-                        [caltech_filenames[i]]
-                        for i in np.random.choice(
-                            range(len(caltech_filenames)), replace=False, size=50
-                        )
-                    ],
+                    samples=samples, # default start with caltech samples defined in global scope
                     samples_per_page=10,
+                    type="index"
                 )
-
-                dataset.click(lambda x: x[0], inputs=dataset, outputs=to_search)
+                
+                dataset.click(load_samples, inputs=dataset, outputs=to_search)
 
             with gr.Tab("Use public image url"):
                 gr.Markdown("""**Please enter valid image url** 📭""")
@@ -194,6 +223,7 @@ with gr.Blocks(css=similar_css) as demo:
             collection = gr.Dropdown(
                 choices=["caltech", "voc"],
                 value="caltech",
+                
                 interactive=True,
                 label=None,
             )
@@ -202,7 +232,7 @@ with gr.Blocks(css=similar_css) as demo:
                 """<h2>Gallery   <span>Click to enlarge, Right-click to download</span></h2>"""
             )
             gallery_choices = {
-                "caltech": [
+                "caltech":[
                     caltech_filenames[i]
                     for i in np.random.choice(
                         range(len(caltech_filenames)), replace=False, size=50
@@ -216,10 +246,9 @@ with gr.Blocks(css=similar_css) as demo:
                 ],
             }
             gallery = gr.Gallery(gallery_choices["caltech"],elem_id="gallery_search").style(grid=[4])
+            
             collection.change(
-                lambda collection: gr.Dataset.update(
-                    samples=dataset_choices[collection]
-                ),
+                update_examples,
                 inputs=collection,
                 outputs=dataset,
             )
@@ -258,27 +287,12 @@ with gr.Blocks(css=similar_css) as demo:
                     for i in range(5)
                 ]
 
-        def update_search_dropdown(k_neighbors):
-            return gr.update(choices=list(range(1, k_neighbors + 1)))
+            slider.change(update_search_dropdown, inputs=slider, outputs=search_again)
+            slider.change(image_visibility, inputs=slider, outputs=similar_images)
+            search_again.change(
+                mirror_to_preview, inputs=[search_again] + similar_images, outputs=to_search
+            )
 
-        def mirror_to_preview(
-            *idx_and_similar_images,
-        ):  # gradio seem to need each input to be passed separately so no concept of "Group of image component" to be passed as one, receiving function does the hard work parsing
-            idx = int(idx_and_similar_images[0])
-            return idx_and_similar_images[idx]
-
-        slider.change(update_search_dropdown, inputs=slider, outputs=search_again)
-        search_again.change(
-            mirror_to_preview, inputs=[search_again] + similar_images, outputs=to_search
-        )
-
-        def image_visibility(k_neighbors):
-            """Gradio cannot create UI components dynamically, so fix first then edit visibility to achieve similar effect"""
-            return [gr.update(visible=True) for _ in range(k_neighbors)] + [
-                gr.update(visible=False) for _ in range(5 - k_neighbors)
-            ]
-
-        slider.change(image_visibility, inputs=slider, outputs=similar_images)
 
     inputs = [to_search, collection, slider]
     search_btn.click(search, inputs=inputs, outputs=similar_images)
@@ -286,4 +300,4 @@ with gr.Blocks(css=similar_css) as demo:
     collection.change(search, inputs=inputs, outputs=similar_images)
 
 if __name__ == "__main__":
-    demo.launch(share=True)
+    demo.launch(share=True, debug=True)
