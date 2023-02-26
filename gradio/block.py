@@ -126,36 +126,47 @@ online_image_url = gr.Textbox(
     placeholder="Link to jpg, png, gif"
 )  # https://gradio.app/controlling-layout/#defining-and-rendering-components-separately
 
-################### Explaining css ###################
-
-# overflow-y: scroll !important; because without !important it is being overwritten by parent container style of overflow: visible
-
-similar_css = """#similar {
-                            height: 950px;
-                            overflow-y: scroll !important; 
-                          }
-                 h2 span { font-size:16px; }
-                 h1, h2 { margin: 0 !important; }
-                 .gradio-container { background-image: url('file=figures/unicorn.png');
-                                     background-size: contain;
-                                     max-width: 80% !important;
-                                     
-                        }
-                        
-                div#gallery_search > div:nth-child(3) {
-                                     min-height: 700px;
-                            }
-         """
-
-
 samples = dataset_choices['caltech'] # to define it for dataset.click(load_samples
 
 model = ResNet50(
     weights="imagenet", include_top=False, input_shape=(224, 224, 3), pooling="max"
 )
 
+css = """
+/* overflow-y: scroll !important; because without !important it is being overwritten by parent container style of overflow: visible */
 
-with gr.Blocks(css=similar_css) as demo:
+#similar {
+  height: 950px;
+  overflow-y: scroll !important;
+}
+h2 span {
+  font-size: 16px;
+}
+h1,
+h2 {
+  margin: 0 !important;
+}
+.gradio-container {
+  background-image: url("file=figures/unicorn.png");
+  background-size: contain;
+  max-width: 80% !important;
+}
+
+div#gallery_search > div:nth-child(3) {
+  min-height: 700px;
+}
+"""
+
+js = """function () {
+  gradioURL = window.location.href
+  if (!gradioURL.endsWith('?__theme=dark')) {
+    window.location.replace(gradioURL + '?__theme=dark');
+  }
+}"""
+
+
+with gr.Blocks(css=css, theme="darkhuggingface") as demo:    
+    demo.load(_js=js)
     gr.Markdown(
         """<h1><center>Caltech101 and VOC2012 Reverse Image Search</center></h1>"""
     )
@@ -324,6 +335,7 @@ with gr.Blocks(css=similar_css) as demo:
     search_btn.click(search, inputs=inputs, outputs=similar_images)
     search_btn.click(lambda x: x, inputs=to_search, outputs=last_search)
     collection.change(search, inputs=inputs, outputs=similar_images)
+
 
 if __name__ == "__main__":
     demo.launch(share=True, 
