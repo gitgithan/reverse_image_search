@@ -45,14 +45,14 @@ dataset_choices = {
         [
         [caltech_filenames[i]]
         for i in np.random.choice(
-            range(len(caltech_filenames)), replace=False, size=50
+            range(len(caltech_filenames)), replace=False, size=20
         )
     ],
     "voc": 
         [
         [voc_filenames[i]]
         for i in np.random.choice(
-            range(len(voc_filenames)), replace=False, size=50
+            range(len(voc_filenames)), replace=False, size=20
         )
     ],
 }
@@ -126,16 +126,20 @@ online_image_url = gr.Textbox(
     placeholder="Link to jpg, png, gif"
 )  # https://gradio.app/controlling-layout/#defining-and-rendering-components-separately
 
+################### Explaining css ###################
+
 # overflow-y: scroll !important; because without !important it is being overwritten by parent container style of overflow: visible
+
 similar_css = """#similar {
                             height: 950px;
                             overflow-y: scroll !important; 
                           }
                  h2 span { font-size:16px; }
-                 h2 { margin: 0 !important; }
+                 h1, h2 { margin: 0 !important; }
                  .gradio-container { background-image: url('file=figures/unicorn.png');
                                      background-size: contain;
                                      max-width: 80% !important;
+                                     
                         }
                         
                 div#gallery_search > div:nth-child(3) {
@@ -158,10 +162,12 @@ with gr.Blocks(css=similar_css) as demo:
 
     with gr.Row():
         with gr.Column():
-            gr.Markdown(
-                "<h2>Image to Search 🔍   <span>Previews can be cropped (pencil icon)</span></h2>"
-            )
-
+            with gr.Row():
+                gr.Markdown(
+                    "<h2>Image to Search 🔍</h2>"
+                )
+                upload_webcam = gr.Checkbox(label="Check box to use Webcam")
+                
             with gr.Row():
                 with gr.Column():
                     to_search_webcam = gr.Image(
@@ -184,7 +190,7 @@ with gr.Blocks(css=similar_css) as demo:
                     mirror_curr_prev = gr.Button(
                         value="Copy To Search to Last Searched ➡️"
                     )
-                    upload_webcam = gr.Checkbox(label="Use Webcam")
+                    
                     upload_webcam.change(
                         lambda checked: gr.update(visible=checked),
                         inputs=upload_webcam,
@@ -205,7 +211,18 @@ with gr.Blocks(css=similar_css) as demo:
                 mirror_prev_curr.click(
                     lambda x: x, inputs=last_search, outputs=to_search
                 )
-
+                
+            with gr.Row():
+                gr.Markdown(
+                    "<h2>Choose Collection 🎨</h2>",
+                )
+                collection = gr.Radio(
+                    choices=["caltech", "voc"],
+                    value="caltech",
+                    interactive=True,
+                    label="",
+                )
+                
             search_btn = gr.Button("Search", variant="primary")
             with gr.Tab("Use examples from collection"):
                 gr.Markdown("**Click any example to populate To Search 💡**")
@@ -213,7 +230,7 @@ with gr.Blocks(css=similar_css) as demo:
                 dataset = gr.Dataset(
                     components=[to_search],
                     samples=samples, # default start with caltech samples defined in global scope, don't write dataset_choices['caltech'] or else samples undefined in dataset.click(load_samples)
-                    samples_per_page=10,
+                    samples_per_page=20,
                     type="index"
                 )
                 
@@ -236,17 +253,6 @@ with gr.Blocks(css=similar_css) as demo:
                 online_image_url.change(
                     read_online_image, inputs=online_image_url, outputs=to_search
                 )
-
-            gr.Markdown(
-                "<h2>Choose Collection 🎨   <span>Updates examples, gallery, search results</span></h2>",
-            )
-            collection = gr.Dropdown(
-                choices=["caltech", "voc"],
-                value="caltech",
-                
-                interactive=True,
-                label=None,
-            )
 
             gr.Markdown(
                 """<h2>Gallery   <span>Click to enlarge, Right-click to download</span></h2>"""
@@ -279,21 +285,21 @@ with gr.Blocks(css=similar_css) as demo:
             )
 
         with gr.Column():
-            gr.Markdown("## Similar Images 🔎")
+            gr.Markdown("<h2><center>Similar Images 🔎</center></h2>")
             initial_slider_value = 3
-
-            slider = gr.Slider(
-                value=initial_slider_value,
-                minimum=1,
-                maximum=5,
-                step=1,
-                interactive=True,
-                label="Number of similar images to show",
-            )
-            search_again = gr.Radio(
-                choices=list(map(str, range(1, initial_slider_value + 1))),
-                label="Which of the similar images do you want to search again? ♻️",
-            )
+            with gr.Row():
+                slider = gr.Slider(
+                    value=initial_slider_value,
+                    minimum=1,
+                    maximum=5,
+                    step=1,
+                    interactive=True,
+                    label="Number of similar images to show",
+                )
+                search_again = gr.Radio(
+                    choices=list(map(str, range(1, initial_slider_value + 1))),
+                    label="Search output image? ♻️",
+                )
             with gr.Box(
                 elem_id="similar"
             ):  # need this wrapper to group images together for css targeting, and to separate from Radio component below
@@ -320,4 +326,8 @@ with gr.Blocks(css=similar_css) as demo:
     collection.change(search, inputs=inputs, outputs=similar_images)
 
 if __name__ == "__main__":
-    demo.launch(share=True, debug=True, server_name="0.0.0.0")
+    demo.launch(share=True, 
+                debug=True, 
+                server_name="0.0.0.0",
+                ssl_keyfile="key.pem", ssl_certfile="cert.pem"
+                )
