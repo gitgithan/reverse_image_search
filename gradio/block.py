@@ -57,14 +57,6 @@ dataset_choices = {
     ],
 }
 
-def encode_pil_to_base64_new(pil_image):
-    print("using new encoding method")
-    image_arr = np.asarray(pil_image)[:,:,::-1]
-    _, byte_data = imencode('.png', image_arr)        
-    base64_data = base64.b64encode(byte_data)
-    base64_string_opencv = base64_data.decode("utf-8")
-    return "data:image/png;base64," + base64_string_opencv
-
 def read_online_image(image_url):
     try:  # in case users paste non-image links that cannot be read as image
         response = requests.get(image_url)
@@ -132,40 +124,15 @@ model = ResNet50(
     weights="imagenet", include_top=False, input_shape=(224, 224, 3), pooling="max"
 )
 
-css = """
-/* overflow-y: scroll !important; because without !important it is being overwritten by parent container style of overflow: visible */
-
-#similar {
-  height: 950px;
-  overflow-y: scroll !important;
-}
-h2 span {
-  font-size: 16px;
-}
-h1,
-h2 {
-  margin: 0 !important;
-}
-.gradio-container {
-  background-image: url("file=figures/unicorn.png");
-  background-size: contain;
-  max-width: 80% !important;
-}
-
-div#gallery_search > div:nth-child(3) {
-  min-height: 700px;
-}
-"""
-
 js = """function () {
   gradioURL = window.location.href
   if (!gradioURL.endsWith('?__theme=dark')) {
     window.location.replace(gradioURL + '?__theme=dark');
   }
-}"""
+}
+"""
 
-
-with gr.Blocks(css=css, theme="darkhuggingface") as demo:    
+with gr.Blocks(css=os.getcwd()+"/gradio/main.css") as demo:    
     demo.load(_js=js)
     gr.Markdown(
         """<h1><center>Caltech101 and VOC2012 Reverse Image Search</center></h1>"""
@@ -341,5 +308,5 @@ if __name__ == "__main__":
     demo.launch(share=True, 
                 debug=True, 
                 server_name="0.0.0.0",
-                ssl_keyfile="key.pem", ssl_certfile="cert.pem"
+                # ssl_keyfile="key.pem", ssl_certfile="cert.pem"
                 )
