@@ -74,6 +74,7 @@ pip install -r requirements.txt
 │   ├── index_ivfpq_caltech.index
 │   ├── index_ivfpq_voc.index
 │   └── interface.py
+│   └── main.css
 ├── ivfpq.pptx
 ├── notebooks
 │   ├── feature_extraction.ipynb
