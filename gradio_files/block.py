@@ -317,6 +317,7 @@ if __name__ == "__main__":
     demo.launch(
         share=True,
         debug=True,
-        server_name="0.0.0.0",
+        # server_port=8443,
+        # server_name="0.0.0.0",
         # ssl_keyfile="key.pem", ssl_certfile="cert.pem"
     )
