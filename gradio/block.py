@@ -36,8 +36,8 @@ with open("features/filenames-voc2012.pickle", "rb") as f:
     voc_filenames = np.array([filename[1:] for filename in voc_filenames])
 
 indexes = {
-    "caltech": faiss.read_index("gradio/index_ivfpq_caltech.index"),
-    "voc": faiss.read_index("gradio/index_ivfpq_voc.index"),
+    "caltech": faiss.read_index(os.path.abspath(f"{__file__}" + "/../index_ivfpq_caltech.index")),
+    "voc": faiss.read_index(os.path.abspath(f"{__file__}" + "/../index_ivfpq_voc.index"))
 }
 
 dataset_choices = {
