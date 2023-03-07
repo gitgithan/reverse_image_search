@@ -37,9 +37,9 @@ pip install -r requirements.txt
    - `chmod u+x data_download.sh` to make script executable
    - `./data_download all` to download both caltech (1 minute) and voc2012 (6 minutes :warning:) (`all` can be substituted with `caltech` or `voc`)
 3. **Create Indexes** (optional since already created)
-   - `python gradio/create_index.py --data caltech` (`caltech` can be substituted with `voc`)
+   - `python gradio_files/create_index.py --data caltech` (`caltech` can be substituted with `voc`)
 4. **Run gradio** (ensure `features` and `datasets` folder exist at same level as gradio folder)
-   - `python gradio/block.py` (it will request webcam access, close browser tab running gradio to shut webcam)
+   - `python gradio_files/block.py` (it will request webcam access, close browser tab running gradio to shut webcam)
 
 # Folder Structure :file_folder:
 
@@ -68,7 +68,7 @@ pip install -r requirements.txt
 │   ├── ivfoverview.png
 │   ├── ivfpq.png
 │   └── ivfumap.png
-├── gradio
+├── gradio_files
 │   ├── block.py
 │   ├── create_index.py
 │   ├── index_ivfpq_caltech.index

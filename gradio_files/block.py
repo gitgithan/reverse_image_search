@@ -14,14 +14,16 @@ import base64
 
 global INDEX
 
+
 # Use faster converter, maybe not needed in gradio 4.0 : https://github.com/gradio-app/gradio/issues/2635#issuecomment-1423531319
 def encode_pil_to_base64_new(pil_image):
     print("using new encoding method")
-    image_arr = np.asarray(pil_image)[:,:,::-1]
-    _, byte_data = imencode('.png', image_arr)        
+    image_arr = np.asarray(pil_image)[:, :, ::-1]
+    _, byte_data = imencode(".png", image_arr)
     base64_data = base64.b64encode(byte_data)
     base64_string_opencv = base64_data.decode("utf-8")
     return "data:image/png;base64," + base64_string_opencv
+
 
 gr.processing_utils.encode_pil_to_base64 = encode_pil_to_base64_new
 
@@ -36,26 +38,25 @@ with open("features/filenames-voc2012.pickle", "rb") as f:
     voc_filenames = np.array([filename[1:] for filename in voc_filenames])
 
 indexes = {
-    "caltech": faiss.read_index(os.path.abspath(f"{__file__}" + "/../index_ivfpq_caltech.index")),
-    "voc": faiss.read_index(os.path.abspath(f"{__file__}" + "/../index_ivfpq_voc.index"))
+    "caltech": faiss.read_index(
+        os.path.abspath(f"{__file__}" + "/../index_ivfpq_caltech.index")
+    ),
+    "voc": faiss.read_index(
+        os.path.abspath(f"{__file__}" + "/../index_ivfpq_voc.index")
+    ),
 }
 
 dataset_choices = {
-    "caltech": 
-        [
+    "caltech": [
         [caltech_filenames[i]]
-        for i in np.random.choice(
-            range(len(caltech_filenames)), replace=False, size=20
-        )
+        for i in np.random.choice(range(len(caltech_filenames)), replace=False, size=20)
     ],
-    "voc": 
-        [
+    "voc": [
         [voc_filenames[i]]
-        for i in np.random.choice(
-            range(len(voc_filenames)), replace=False, size=20
-        )
+        for i in np.random.choice(range(len(voc_filenames)), replace=False, size=20)
     ],
 }
+
 
 def read_online_image(image_url):
     try:  # in case users paste non-image links that cannot be read as image
@@ -88,21 +89,27 @@ def search(inp, data, k):
     )  # Prevent ValueError: Number of output components does not match number of values returned from from function find_similar
     return result_filenames
 
+
 def load_samples(file_idx):
     # State management pattern at https://github.com/gradio-app/gradio/issues/3271#issuecomment-1440455811
     global samples
-    return samples[file_idx][0] # extract first element because Dataset constructed with list of list by gradio api design
+    return samples[file_idx][
+        0
+    ]  # extract first element because Dataset constructed with list of list by gradio api design
+
 
 def update_examples(collection_value):
     global samples
     samples = dataset_choices[collection_value]
     return gr.Dataset.update(samples=samples)
 
+
 def mirror_to_preview(
     *idx_and_similar_images,
 ):  # gradio seem to need each input to be passed separately so no concept of "Group of image component" to be passed as one, receiving function does the hard work parsing
     idx = int(idx_and_similar_images[0])
     return idx_and_similar_images[idx]
+
 
 def update_search_dropdown(k_neighbors):
     return gr.update(choices=list(range(1, k_neighbors + 1)))
@@ -113,12 +120,13 @@ def image_visibility(k_neighbors):
     return [gr.update(visible=True) for _ in range(k_neighbors)] + [
         gr.update(visible=False) for _ in range(5 - k_neighbors)
     ]
-    
+
+
 online_image_url = gr.Textbox(
     placeholder="Link to jpg, png, gif"
 )  # https://gradio.app/controlling-layout/#defining-and-rendering-components-separately
 
-samples = dataset_choices['caltech'] # to define it for dataset.click(load_samples
+samples = dataset_choices["caltech"]  # to define it for dataset.click(load_samples
 
 model = ResNet50(
     weights="imagenet", include_top=False, input_shape=(224, 224, 3), pooling="max"
@@ -132,7 +140,7 @@ js = """function () {
 }
 """
 
-with gr.Blocks(css=os.getcwd()+"/gradio/main.css") as demo:    
+with gr.Blocks(css=os.path.abspath(f"{__file__}" + "/../main.css")) as demo:
     demo.load(_js=js)
     gr.Markdown(
         """<h1><center>Caltech101 and VOC2012 Reverse Image Search</center></h1>"""
@@ -141,11 +149,9 @@ with gr.Blocks(css=os.getcwd()+"/gradio/main.css") as demo:
     with gr.Row():
         with gr.Column():
             with gr.Row():
-                gr.Markdown(
-                    "<h2>Image to Search 🔍</h2>"
-                )
+                gr.Markdown("<h2>Image to Search 🔍</h2>")
                 upload_webcam = gr.Checkbox(label="Check box to use Webcam")
-                
+
             with gr.Row():
                 with gr.Column():
                     to_search_webcam = gr.Image(
@@ -168,7 +174,7 @@ with gr.Blocks(css=os.getcwd()+"/gradio/main.css") as demo:
                     mirror_curr_prev = gr.Button(
                         value="Copy To Search to Last Searched ➡️"
                     )
-                    
+
                     upload_webcam.change(
                         lambda checked: gr.update(visible=checked),
                         inputs=upload_webcam,
@@ -189,7 +195,7 @@ with gr.Blocks(css=os.getcwd()+"/gradio/main.css") as demo:
                 mirror_prev_curr.click(
                     lambda x: x, inputs=last_search, outputs=to_search
                 )
-                
+
             with gr.Row():
                 gr.Markdown(
                     "<h2>Choose Collection 🎨</h2>",
@@ -200,18 +206,18 @@ with gr.Blocks(css=os.getcwd()+"/gradio/main.css") as demo:
                     interactive=True,
                     label="",
                 )
-                
+
             search_btn = gr.Button("Search", variant="primary")
             with gr.Tab("Use examples from collection"):
                 gr.Markdown("**Click any example to populate To Search 💡**")
-                
+
                 dataset = gr.Dataset(
                     components=[to_search],
-                    samples=samples, # default start with caltech samples defined in global scope, don't write dataset_choices['caltech'] or else samples undefined in dataset.click(load_samples)
+                    samples=samples,  # default start with caltech samples defined in global scope, don't write dataset_choices['caltech'] or else samples undefined in dataset.click(load_samples)
                     samples_per_page=20,
-                    type="index"
+                    type="index",
                 )
-                
+
                 dataset.click(load_samples, inputs=dataset, outputs=to_search)
 
             with gr.Tab("Use public image url"):
@@ -236,7 +242,7 @@ with gr.Blocks(css=os.getcwd()+"/gradio/main.css") as demo:
                 """<h2>Gallery   <span>Click to enlarge, Right-click to download</span></h2>"""
             )
             gallery_choices = {
-                "caltech":[
+                "caltech": [
                     caltech_filenames[i]
                     for i in np.random.choice(
                         range(len(caltech_filenames)), replace=False, size=50
@@ -249,13 +255,15 @@ with gr.Blocks(css=os.getcwd()+"/gradio/main.css") as demo:
                     )
                 ],
             }
-            gallery = gr.Gallery(gallery_choices["caltech"],elem_id="gallery_search").style(grid=[4])
+            gallery = gr.Gallery(
+                gallery_choices["caltech"], elem_id="gallery_search"
+            ).style(grid=[4])
             collection.change(
                 lambda collection: gallery.update(value=gallery_choices[collection]),
                 inputs=collection,
                 outputs=gallery,
             )
-            
+
             collection.change(
                 update_examples,
                 inputs=collection,
@@ -294,9 +302,10 @@ with gr.Blocks(css=os.getcwd()+"/gradio/main.css") as demo:
             slider.change(update_search_dropdown, inputs=slider, outputs=search_again)
             slider.change(image_visibility, inputs=slider, outputs=similar_images)
             search_again.change(
-                mirror_to_preview, inputs=[search_again] + similar_images, outputs=to_search
+                mirror_to_preview,
+                inputs=[search_again] + similar_images,
+                outputs=to_search,
             )
-
 
     inputs = [to_search, collection, slider]
     search_btn.click(search, inputs=inputs, outputs=similar_images)
@@ -305,8 +314,9 @@ with gr.Blocks(css=os.getcwd()+"/gradio/main.css") as demo:
 
 
 if __name__ == "__main__":
-    demo.launch(share=True, 
-                debug=True, 
-                server_name="0.0.0.0",
-                # ssl_keyfile="key.pem", ssl_certfile="cert.pem"
-                )
+    demo.launch(
+        share=True,
+        debug=True,
+        server_name="0.0.0.0",
+        # ssl_keyfile="key.pem", ssl_certfile="cert.pem"
+    )
